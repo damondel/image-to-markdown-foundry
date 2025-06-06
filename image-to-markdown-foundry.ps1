@@ -1,3 +1,4 @@
+# Azure AI Foundry Image to Markdown Converter
 # Streamlined Image to Markdown Converter optimized for Azure AI Foundry
 # documentId: script-image-to-markdown-foundry-content-processing
 # This script is optimized for Azure AI Foundry usage with simplified environment handling

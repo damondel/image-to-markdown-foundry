@@ -1,3 +1,4 @@
+# Batch Azure AI Foundry Image to Markdown Processor
 # Batch processor for Azure AI Foundry image-to-markdown conversion
 # documentId: script-batch-image-to-markdown-foundry-content-processing
 
