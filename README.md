@@ -1,4 +1,4 @@
-# Azure AI Foundry Image-to-Markdown Converter
+# Image-to-Markdown Foundry
 
 A streamlined PowerShell toolkit for converting images to markdown using Azure AI Foundry's vision models. This tool performs OCR (Optical Character Recognition) on images and generates properly formatted markdown files with optional YAML front matter.
 
@@ -46,6 +46,15 @@ Ensure you have a vision-capable model deployed in Azure AI Foundry:
 - GPT-4o (recommended, default)
 - GPT-4 Vision
 - GPT-4 Turbo with Vision
+
+## 🚀 Getting Started
+
+1. **Clone Repository**: Download the PowerShell scripts to your local machine
+2. **Configure Environment**: Set up your Azure AI Foundry credentials
+3. **Verify Model Access**: Ensure you have a vision-capable model deployed
+4. **Prepare Images**: Organize your image files in dedicated directories
+5. **Choose Processing Mode**: Single directory or batch processing
+6. **Execute Scripts**: Run conversion with your desired parameters
 
 ## 📖 Usage
 
@@ -189,11 +198,15 @@ The scripts include comprehensive error handling for:
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🔗 Related Projects
+
+- [VTT to Markdown Converter](https://github.com/damondel/vtt-to-markdown-converter) - Convert VTT transcript files to markdown
