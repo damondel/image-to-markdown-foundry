@@ -52,6 +52,45 @@ function Initialize-Environment {
     return $false
 }
 
+# Environment validation function
+function Test-AzureEnvironment {
+    param(
+        [string]$endpoint,
+        [string]$key
+    )
+    
+    if (-not $endpoint -or -not $key) {
+        Write-Host "`nEnvironment Configuration Help:" -ForegroundColor Yellow
+        Write-Host "================================" -ForegroundColor Yellow
+        Write-Host "This script requires Azure AI Foundry or Azure OpenAI credentials."
+        Write-Host "Please create an 'ai-foundry.env' file with your credentials:"
+        Write-Host ""
+        Write-Host "AZURE_AI_FOUNDRY_ENDPOINT=https://your-project.openai.azure.com"
+        Write-Host "AZURE_AI_FOUNDRY_KEY=your-api-key"
+        Write-Host ""
+        Write-Host "OR for Azure OpenAI:"
+        Write-Host "AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com"
+        Write-Host "AZURE_OPENAI_API_KEY=your-api-key"
+        Write-Host ""
+        Write-Host "See SETUP.md for detailed configuration instructions."
+        return $false
+    }
+    return $true
+}
+
+# Function to test Azure connectivity
+function Test-AzureConnectivity {
+    param([string]$endpoint)
+    
+    try {
+        $uri = [System.Uri]$endpoint
+        $testResult = Test-NetConnection -ComputerName $uri.Host -Port 443 -InformationLevel Quiet -WarningAction SilentlyContinue
+        return $testResult
+    } catch {
+        return $false
+    }
+}
+
 # Function to extract text using Azure AI Foundry Vision
 function Get-TextFromImage-Foundry {
     param(
@@ -114,9 +153,10 @@ function Get-TextFromImage-Foundry {
         max_tokens = $MaxTokens
         temperature = 0.1  # Low temperature for consistent OCR results
     }
+      $jsonBody = $requestBody | ConvertTo-Json -Depth 10
+    $uri = "$endpoint/openai/deployments/$DeploymentName/chat/completions?api-version=$apiVersion"
     
-    $jsonBody = $requestBody | ConvertTo-Json -Depth 10
-    $uri = "$endpoint/openai/deployments/$DeploymentName/chat/completions?api-version=$apiVersion"    try {
+    try {
         Write-Host "  -> Calling Azure AI Foundry ($DeploymentName)..." -ForegroundColor Cyan
         
         $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $jsonBody

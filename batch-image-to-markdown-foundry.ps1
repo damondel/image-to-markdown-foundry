@@ -18,13 +18,23 @@ param(
 
 # Set defaults
 if (-not $RootDirectory) {
-    $scriptRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $RootDirectory = Join-Path $scriptRoot "data\screenshots"
+    # Use current directory if no specific structure exists
+    $defaultDataDir = Join-Path (Split-Path -Parent $PSScriptRoot) "data"
+    if (Test-Path $defaultDataDir) {
+        $RootDirectory = Join-Path $defaultDataDir "screenshots"
+    } else {
+        $RootDirectory = Join-Path (Get-Location) "images"
+    }
 }
 
 if (-not $OutputBaseDirectory) {
-    $scriptRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $OutputBaseDirectory = Join-Path $scriptRoot "data\markdown-output"
+    # Use current directory if no specific structure exists  
+    $defaultDataDir = Join-Path (Split-Path -Parent $PSScriptRoot) "data"
+    if (Test-Path $defaultDataDir) {
+        $OutputBaseDirectory = Join-Path $defaultDataDir "markdown-output"
+    } else {
+        $OutputBaseDirectory = Join-Path (Get-Location) "markdown-output"
+    }
 }
 
 Write-Host "=== Batch Azure AI Foundry Image Processing ===" -ForegroundColor Cyan
