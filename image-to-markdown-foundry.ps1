@@ -64,11 +64,10 @@ function Get-TextFromImage-Foundry {
         [Parameter(Mandatory=$false)]
         [int]$MaxTokens = 4000
     )
-    
-    # Get environment variables with fallbacks
-    $endpoint = $env:AZURE_AI_FOUNDRY_ENDPOINT ?? $env:AZURE_OPENAI_ENDPOINT
-    $key = $env:AZURE_AI_FOUNDRY_KEY ?? $env:AZURE_OPENAI_API_KEY
-    $apiVersion = $env:AZURE_OPENAI_API_VERSION ?? "2025-01-01-preview"
+      # Get environment variables with fallbacks
+    $endpoint = if ($env:AZURE_AI_FOUNDRY_ENDPOINT) { $env:AZURE_AI_FOUNDRY_ENDPOINT } else { $env:AZURE_OPENAI_ENDPOINT }
+    $key = if ($env:AZURE_AI_FOUNDRY_KEY) { $env:AZURE_AI_FOUNDRY_KEY } else { $env:AZURE_OPENAI_API_KEY }
+    $apiVersion = if ($env:AZURE_OPENAI_API_VERSION) { $env:AZURE_OPENAI_API_VERSION } else { "2025-01-01-preview" }
     
     if (-not $endpoint -or -not $key) {
         throw "Azure AI Foundry credentials not found. Please ensure ai-foundry.env is properly configured."
@@ -117,16 +116,15 @@ function Get-TextFromImage-Foundry {
     }
     
     $jsonBody = $requestBody | ConvertTo-Json -Depth 10
-    $uri = "$endpoint/openai/deployments/$DeploymentName/chat/completions?api-version=$apiVersion"
-    
-    try {
-        Write-Host "  → Calling Azure AI Foundry ($DeploymentName)..." -ForegroundColor Cyan
+    $uri = "$endpoint/openai/deployments/$DeploymentName/chat/completions?api-version=$apiVersion"    try {
+        Write-Host "  -> Calling Azure AI Foundry ($DeploymentName)..." -ForegroundColor Cyan
+        
         $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $jsonBody
         
         $extractedText = $response.choices[0].message.content
         $usage = $response.usage
         
-        Write-Host "  ✓ Text extracted successfully (Tokens: $($usage.total_tokens))" -ForegroundColor Green
+        Write-Host "  SUCCESS: Text extracted successfully (Tokens: $($usage.total_tokens))" -ForegroundColor Green
         return $extractedText
     }
     catch {
@@ -181,12 +179,7 @@ Write-Host "Optimized workflow for Azure AI Foundry vision models`n" -Foreground
 
 # Initialize environment
 if (-not (Initialize-Environment)) {
-    Write-Warning "No ai-foundry.env file found in expected locations."
-    Write-Host "Expected locations:" -ForegroundColor Yellow
-    Write-Host "  - scripts\content-processing\..\..\config\ai-foundry.env" -ForegroundColor Yellow
-    Write-Host "  - scripts\content-processing\ai-foundry.env" -ForegroundColor Yellow
-    Write-Host "Please ensure your Azure AI Foundry credentials are configured."
-    exit 1
+    Write-Warning "No environment file found. Please ensure ai-foundry.env is configured."
 }
 
 # Validate input directory
@@ -207,17 +200,11 @@ if (-not (Test-Path $OutputFolderPath)) {
 }
 
 # Find image files
-$searchParams = @{
-    Path = $ImageFolderPath
-    Include = @("*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp")
-    File = $true
-}
-
 if ($Recursive) {
-    $searchParams.Recurse = $true
+    $imageFiles = Get-ChildItem -Path $ImageFolderPath -Recurse -File | Where-Object { $_.Extension -match '\.(png|jpg|jpeg|bmp|gif|webp)$' }
+} else {
+    $imageFiles = Get-ChildItem -Path $ImageFolderPath -File | Where-Object { $_.Extension -match '\.(png|jpg|jpeg|bmp|gif|webp)$' }
 }
-
-$imageFiles = Get-ChildItem @searchParams
 
 if ($imageFiles.Count -eq 0) {
     Write-Warning "No image files found in: $ImageFolderPath"
@@ -238,9 +225,8 @@ foreach ($imageFile in $imageFiles) {
     try {
         # Extract text using Azure AI Foundry
         $extractedText = Get-TextFromImage-Foundry -ImagePath $imageFile.FullName -DeploymentName $DeploymentName -SystemPrompt $SystemPrompt -MaxTokens $MaxTokens
-        
-        if ([string]::IsNullOrWhiteSpace($extractedText)) {
-            Write-Warning "  ⚠ No text extracted from $($imageFile.Name)"
+          if ([string]::IsNullOrWhiteSpace($extractedText)) {
+            Write-Warning "  WARNING: No text extracted from $($imageFile.Name)"
             continue
         }
         
@@ -253,12 +239,12 @@ foreach ($imageFile in $imageFiles) {
         
         Set-Content -Path $markdownFilePath -Value $markdown -Encoding UTF8
         
-        Write-Host "  ✓ Created: $markdownFileName" -ForegroundColor Green
+        Write-Host "  SUCCESS: Created $markdownFileName" -ForegroundColor Green
         $successCount++
         
     }
     catch {
-        Write-Host "  ✗ Error: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  ERROR: $($_.Exception.Message)" -ForegroundColor Red
         $errorCount++
     }
     
@@ -267,7 +253,7 @@ foreach ($imageFile in $imageFiles) {
 
 # Summary
 $endTime = Get-Date
-$duration = $endTime - $startTime
+$duration = New-TimeSpan -Start $startTime -End $endTime
 
 Write-Host "=== Processing Complete ===" -ForegroundColor Cyan
 Write-Host "Processed: $($imageFiles.Count) files" -ForegroundColor White

@@ -36,11 +36,13 @@ Write-Host "============================================`n" -ForegroundColor Cya
 
 # Find all directories with images
 $imageDirectories = Get-ChildItem -Path $RootDirectory -Directory -Recurse | Where-Object {
-    (Get-ChildItem -Path $_.FullName -Include @("*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp") -File).Count -gt 0
+    $imageFiles = Get-ChildItem -Path $_.FullName -File | Where-Object { $_.Extension -match '\.(png|jpg|jpeg|bmp|gif|webp)$' }
+    $imageFiles.Count -gt 0
 }
 
 # Also check the root directory
-$rootImages = Get-ChildItem -Path $RootDirectory -Include @("*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp") -File
+$rootImages = Get-ChildItem -Path $RootDirectory -File | Where-Object { $_.Extension -match '\.(png|jpg|jpeg|bmp|gif|webp)$' }
+
 if ($rootImages.Count -gt 0) {
     $imageDirectories = @($([PSCustomObject]@{ FullName = $RootDirectory; Name = "Root" })) + $imageDirectories
 }
@@ -76,21 +78,29 @@ foreach ($directory in $imageDirectories) {
         
         if ($IncludeYamlFrontMatter) {
             $params.IncludeYamlFrontMatter = $true
+        }        # Run the converter and capture all output
+        $result = ""
+        try {
+            $result = & $converterScript @params *>&1 | Out-String
+        } catch {
+            $result = $_.Exception.Message
         }
         
-        # Run the converter
-        $result = & $converterScript @params
+        # Check for success based on output content
+        $hasProcessingComplete = $result -like "*Processing Complete*"
+        $hasSuccessful = $result -like "*Successful:*"
+        $hasNoErrors = $result -like "*Errors: 0*"
         
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✓ Successfully processed" -ForegroundColor Green
+        if ($hasProcessingComplete -and $hasSuccessful -and $hasNoErrors) {
+            Write-Host "  SUCCESS: Successfully processed" -ForegroundColor Green
             $totalProcessed++
         } else {
-            Write-Host "  ✗ Processing failed" -ForegroundColor Red
+            Write-Host "  FAILED: Processing failed" -ForegroundColor Red
             $totalErrors++
         }
         
     } catch {
-        Write-Host "  ✗ Exception: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  ERROR: Exception: $($_.Exception.Message)" -ForegroundColor Red
         $totalErrors++
     }
     
@@ -101,5 +111,5 @@ foreach ($directory in $imageDirectories) {
 Write-Host "=== Batch Processing Summary ===" -ForegroundColor Cyan
 Write-Host "Directories processed: $totalProcessed" -ForegroundColor Green
 Write-Host "Directories with errors: $totalErrors" -ForegroundColor $(if ($totalErrors -gt 0) { "Red" } else { "Green" })
-Write-Host "Output location: $OutputBaseDirectory"
+Write-Host "Output location: $OutputBaseDirectory" -ForegroundColor White
 Write-Host "===============================" -ForegroundColor Cyan
