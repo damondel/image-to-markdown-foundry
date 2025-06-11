@@ -18,9 +18,8 @@ param(
     
     [Parameter(Mandatory=$false, HelpMessage="Custom system prompt for OCR")]
     [string]$SystemPrompt = "You are an assistant that extracts text from images accurately. Return ONLY the text content you see in the image without any additional commentary or descriptions. Preserve formatting such as headings, bullets, and paragraphs where possible.",
-    
-    [Parameter(Mandatory=$false, HelpMessage="Include YAML front matter in output")]
-    [switch]$IncludeYamlFrontMatter,
+      [Parameter(Mandatory=$false, HelpMessage="Include YAML front matter in output")]
+    [switch]$IncludeYamlFrontMatter = $true,
     
     [Parameter(Mandatory=$false, HelpMessage="Process subdirectories recursively")]
     [switch]$Recursive
@@ -177,7 +176,84 @@ function Get-TextFromImage-Foundry {
     }
 }
 
-# Function to generate enhanced markdown with optional YAML front matter
+# Function to generate document ID based on content and metadata
+function New-DocumentId {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$ImageFileName,
+        [Parameter(Mandatory=$false)]
+        [string]$FolderContext = ""
+    )
+    
+    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($ImageFileName)
+    $timestamp = Get-Date -Format "yyyyMMdd"
+    
+    # Create a context-aware ID
+    if (-not [string]::IsNullOrWhiteSpace($FolderContext)) {
+        $contextPart = $FolderContext -replace '[^\w]', '-' -replace '-+', '-'
+        $documentId = "img-$contextPart-$baseName-$timestamp"
+    } else {
+        $documentId = "img-$baseName-$timestamp"
+    }
+    
+    return $documentId.ToLower()
+}
+
+# Function to detect related documents based on naming patterns and context
+function Find-RelatedDocuments {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$CurrentImageName,
+        [Parameter(Mandatory=$true)]
+        [array]$AllImageFiles,
+        [Parameter(Mandatory=$false)]
+        [string]$FolderContext = ""
+    )
+    
+    $relatedDocs = @()
+    $currentBaseName = [System.IO.Path]::GetFileNameWithoutExtension($CurrentImageName)
+    $timestamp = Get-Date -Format "yyyyMMdd"
+    
+    # Look for related files based on naming patterns
+    foreach ($imageFile in $AllImageFiles) {
+        if ($imageFile.Name -eq $CurrentImageName) { continue }
+        
+        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($imageFile.Name)
+        
+        # Check for common patterns: same prefix, sequential numbers, related keywords
+        $isRelated = $false
+        
+        # Same prefix pattern (e.g., "diagram-1", "diagram-2")
+        if ($currentBaseName -match '^(.+)-\d+$' -and $baseName -match '^(.+)-\d+$') {
+            $currentPrefix = $matches[1]
+            if ($baseName -match "^$currentPrefix-\d+$") {
+                $isRelated = $true
+            }
+        }
+        
+        # Common keyword patterns
+        $commonKeywords = @("architecture", "workflow", "interface", "screenshot", "diagram", "flow", "process", "ui", "api")
+        foreach ($keyword in $commonKeywords) {
+            if ($currentBaseName -like "*$keyword*" -and $baseName -like "*$keyword*") {
+                $isRelated = $true
+                break
+            }
+        }
+        
+        # Generate document ID for related file
+        if ($isRelated) {
+            if (-not [string]::IsNullOrWhiteSpace($FolderContext)) {
+                $contextPart = $FolderContext -replace '[^\w]', '-' -replace '-+', '-'
+                $relatedDocId = "img-$contextPart-$baseName-$timestamp"
+            } else {
+                $relatedDocId = "img-$baseName-$timestamp"
+            }
+            $relatedDocs += $relatedDocId.ToLower()
+        }
+    }
+    
+    return $relatedDocs
+}
 function Convert-ToEnhancedMarkdown {
     param(
         [Parameter(Mandatory=$true)]
@@ -185,7 +261,11 @@ function Convert-ToEnhancedMarkdown {
         [Parameter(Mandatory=$true)]
         [string]$ImageFileName,
         [Parameter(Mandatory=$false)]
-        [bool]$IncludeYaml = $false
+        [bool]$IncludeYaml = $false,
+        [Parameter(Mandatory=$false)]
+        [string]$DocumentId = "",
+        [Parameter(Mandatory=$false)]
+        [array]$RelatedDocuments = @()
     )
     
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($ImageFileName)
@@ -197,17 +277,31 @@ function Convert-ToEnhancedMarkdown {
     # Add YAML front matter if requested
     if ($IncludeYaml) {
         $currentDate = Get-Date -Format "yyyy-MM-dd"
+        $currentDateTime = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
         $markdown += "---`n"
+        $markdown += "document_id: `"$DocumentId`"`n"
         $markdown += "title: `"$title`"`n"
         $markdown += "date: `"$currentDate`"`n"
+        $markdown += "created_at: `"$currentDateTime`"`n"
         $markdown += "type: `"image_extraction`"`n"
         $markdown += "source_image: `"$ImageFileName`"`n"
         $markdown += "extraction_method: `"azure_ai_foundry`"`n"
+        if ($RelatedDocuments.Count -gt 0) {
+            $markdown += "related_documents:`n"
+            foreach ($relatedDoc in $RelatedDocuments) {
+                $markdown += "  - `"$relatedDoc`"`n"
+            }
+        }
         $markdown += "---`n`n"
     }
     
     $markdown += "# $title`n`n"
-    $markdown += "> Extracted from image: `$ImageFileName``n`n"
+    $markdown += "> **Document ID:** $DocumentId  `n"
+    $markdown += "> **Extracted from image:** $ImageFileName  `n"
+    if ($RelatedDocuments.Count -gt 0) {
+        $markdown += "> **Related documents:** " + ($RelatedDocuments -join ", ") + "  `n"
+    }
+    $markdown += "`n"
     $markdown += $Text
     
     return $markdown
@@ -253,6 +347,9 @@ if ($imageFiles.Count -eq 0) {
 
 Write-Host "Found $($imageFiles.Count) image file(s) to process`n" -ForegroundColor White
 
+# Generate folder context for document IDs
+$folderContext = Split-Path -Leaf $ImageFolderPath
+
 # Process each image
 $successCount = 0
 $errorCount = 0
@@ -263,15 +360,23 @@ foreach ($imageFile in $imageFiles) {
     Write-Host "Processing: $($imageFile.Name)" -ForegroundColor Yellow
     
     try {
+        # Generate document ID and find related documents
+        $documentId = New-DocumentId -ImageFileName $imageFile.Name -FolderContext $folderContext
+        $relatedDocuments = Find-RelatedDocuments -CurrentImageName $imageFile.Name -AllImageFiles $imageFiles -FolderContext $folderContext
+        
+        Write-Host "  -> Document ID: $documentId" -ForegroundColor Gray
+        if ($relatedDocuments.Count -gt 0) {
+            Write-Host "  -> Related docs: $($relatedDocuments.Count)" -ForegroundColor Gray
+        }
+        
         # Extract text using Azure AI Foundry
         $extractedText = Get-TextFromImage-Foundry -ImagePath $imageFile.FullName -DeploymentName $DeploymentName -SystemPrompt $SystemPrompt -MaxTokens $MaxTokens
           if ([string]::IsNullOrWhiteSpace($extractedText)) {
             Write-Warning "  WARNING: No text extracted from $($imageFile.Name)"
-            continue
-        }
+            continue        }
         
-        # Generate markdown
-        $markdown = Convert-ToEnhancedMarkdown -Text $extractedText -ImageFileName $imageFile.Name -IncludeYaml $IncludeYamlFrontMatter
+        # Generate markdown with document ID and related documents
+        $markdown = Convert-ToEnhancedMarkdown -Text $extractedText -ImageFileName $imageFile.Name -IncludeYaml $IncludeYamlFrontMatter -DocumentId $documentId -RelatedDocuments $relatedDocuments
         
         # Save markdown file
         $markdownFileName = [System.IO.Path]::GetFileNameWithoutExtension($imageFile.Name) + ".md"

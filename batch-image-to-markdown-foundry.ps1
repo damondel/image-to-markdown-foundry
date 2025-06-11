@@ -8,9 +8,8 @@ param(
     
     [Parameter(Mandatory=$false, HelpMessage="Output base directory")]
     [string]$OutputBaseDirectory,
-    
-    [Parameter(Mandatory=$false, HelpMessage="Include YAML front matter in all outputs")]
-    [switch]$IncludeYamlFrontMatter,
+      [Parameter(Mandatory=$false, HelpMessage="Include YAML front matter in all outputs")]
+    [switch]$IncludeYamlFrontMatter = $true,
     
     [Parameter(Mandatory=$false, HelpMessage="Azure AI Foundry deployment name")]
     [string]$DeploymentName = "gpt-4o"
@@ -78,8 +77,7 @@ foreach ($directory in $imageDirectories) {
     
     Write-Host "Processing: $($directory.FullName)" -ForegroundColor Yellow
     
-    try {
-        # Build parameters
+    try {        # Build parameters with document linking
         $params = @{
             ImageFolderPath = $directory.FullName
             OutputFolderPath = $outputDir
