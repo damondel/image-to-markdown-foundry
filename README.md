@@ -1,10 +1,10 @@
 # Image-to-Markdown Foundry
 
-A streamlined PowerShell toolkit for converting images to markdown using Azure AI Foundry's vision models. This tool performs OCR (Optical Character Recognition) on images and generates properly formatted markdown files with optional YAML front matter.
+A streamlined PowerShell toolkit for converting images to markdown using Microsoft Foundry's vision models. This tool performs OCR (Optical Character Recognition) on images and generates properly formatted markdown files with optional YAML front matter.
 
 ## 🚀 Features
 
-- **Azure AI Foundry Integration**: Leverages Azure AI Foundry's GPT-4o vision models for accurate text extraction
+- **Microsoft Foundry Integration**: Leverages Microsoft Foundry's GPT-4o vision models for accurate text extraction
 - **Batch Processing**: Process entire directories of images automatically
 - **Flexible Output**: Optional YAML front matter for static site generators
 - **Multiple Image Formats**: Supports PNG, JPG, JPEG, BMP, GIF, and WebP
@@ -15,7 +15,7 @@ A streamlined PowerShell toolkit for converting images to markdown using Azure A
 ## 📋 Prerequisites
 
 - PowerShell 5.1 or later
-- Azure AI Foundry or Azure OpenAI service with vision-enabled model deployment
+- Microsoft Foundry or Azure OpenAI service with vision-enabled model deployment
 - Valid Azure credentials
 
 ## 🔧 Setup
@@ -28,7 +28,7 @@ Create an `ai-foundry.env` file in one of these locations:
 - `../../config/ai-foundry.env` (config directory)
 
 ```bash
-# Required: Azure AI Foundry/OpenAI Configuration
+# Required: Microsoft Foundry/OpenAI Configuration
 AZURE_AI_FOUNDRY_ENDPOINT=https://your-foundry-endpoint.openai.azure.com
 AZURE_AI_FOUNDRY_KEY=your-api-key
 
@@ -42,7 +42,7 @@ AZURE_OPENAI_API_VERSION=2025-01-01-preview
 
 ### 2. Verify Model Deployment
 
-Ensure you have a vision-capable model deployed in Azure AI Foundry:
+Ensure you have a vision-capable model deployed in Microsoft Foundry:
 - GPT-4o (recommended, default)
 - GPT-4 Vision
 - GPT-4 Turbo with Vision
@@ -50,7 +50,7 @@ Ensure you have a vision-capable model deployed in Azure AI Foundry:
 ## 🚀 Getting Started
 
 1. **Clone Repository**: Download the PowerShell scripts to your local machine
-2. **Configure Environment**: Set up your Azure AI Foundry credentials
+2. **Configure Environment**: Set up your Microsoft Foundry credentials
 3. **Verify Model Access**: Ensure you have a vision-capable model deployed
 4. **Prepare Images**: Organize your image files in dedicated directories
 5. **Choose Processing Mode**: Single directory or batch processing
@@ -108,7 +108,7 @@ Ensure you have a vision-capable model deployed in Azure AI Foundry:
 | `RootDirectory` | String | No | `../../data/screenshots` | Root directory to search for images |
 | `OutputBaseDirectory` | String | No | `../../data/markdown-output` | Output base directory |
 | `IncludeYamlFrontMatter` | Switch | No | `false` | Include YAML front matter in all outputs |
-| `DeploymentName` | String | No | `gpt-4o` | Azure AI model deployment name |
+| `DeploymentName` | String | No | `gpt-4o` | Microsoft Foundry model deployment name |
 
 ## 📁 Output Format
 
@@ -130,7 +130,7 @@ title: "Image Title"
 date: "2025-06-05"
 type: "image_extraction"
 source_image: "screenshot.png"
-extraction_method: "azure_ai_foundry"
+extraction_method: "microsoft_foundry"
 ---
 
 # Image Title
@@ -168,7 +168,7 @@ The scripts include comprehensive error handling for:
 
 ### Common Issues
 
-1. **"Azure AI Foundry credentials not found"**
+1. **"Microsoft Foundry credentials not found"**
    - Verify `ai-foundry.env` file exists and is properly formatted
    - Check environment variable names match exactly
 

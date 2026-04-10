@@ -9,8 +9,8 @@ Copy these files to your preferred directory:
 
 ### 2. Azure AI Setup (Required)
 
-#### Option A: Azure AI Foundry (Recommended)
-1. Go to [Azure AI Foundry](https://ai.azure.com/)
+#### Option A: Microsoft Foundry (Recommended)
+1. Go to [Microsoft Foundry](https://ai.azure.com/)
 2. Create a new project or use existing one
 3. Deploy a vision-capable model (GPT-4o recommended)
 4. Note your endpoint URL and API key
@@ -26,7 +26,7 @@ Copy these files to your preferred directory:
 Create `ai-foundry.env` file in the same folder as the scripts:
 
 ```bash
-# For Azure AI Foundry
+# For Microsoft Foundry
 AZURE_AI_FOUNDRY_ENDPOINT=https://your-project.openai.azure.com
 AZURE_AI_FOUNDRY_KEY=your-api-key-here
 
